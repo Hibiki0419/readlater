@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  password  String
+  name      String
+  apiToken  String    @unique @default(uuid()) @map("api_token")
+  createdAt DateTime  @default(now()) @map("created_at")
+  articles  Article[]
+  tags      Tag[]
+  keywords  Keyword[]
+  feeds     Feed[]
+
+  @@map("users")
+}
+
+model Article {
+  id         Int          @id @default(autoincrement())
+  url        String
+  title      String?
+  domain     String?
+  content    String?
+  excerpt    String?
+  isRead     Boolean      @default(false) @map("is_read")
+  isFavorite Boolean      @default(false) @map("is_favorite")
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+  readAt     DateTime?    @map("read_at")
+  userId     Int?         @map("user_id")
+  user       User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tags       ArticleTag[]
+
+  @@map("articles")
+  @@index([isRead])
+  @@index([isFavorite])
+  @@index([createdAt])
+  @@index([url])
+  @@index([userId])
+}
+
+model Tag {
+  id       Int          @id @default(autoincrement())
+  name     String
+  color    String       @default("#6366f1")
+  userId   Int?         @map("user_id")
+  user     User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  articles ArticleTag[]
+
+  @@unique([name, userId])
+  @@map("tags")
+}
+
+model ArticleTag {
+  articleId Int @map("article_id")
+  tagId     Int @map("tag_id")
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, tagId])
+  @@map("article_tags")
+}
+
+model Keyword {
+  id        Int      @id @default(autoincrement())
+  word      String
+  userId    Int?     @map("user_id")
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([word, userId])
+  @@map("keywords")
+}
+
+model Feed {
+  id        Int      @id @default(autoincrement())
+  url       String
+  name      String
+  userId    Int?     @map("user_id")
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([url, userId])
+  @@map("feeds")
+}
