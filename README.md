@@ -1,42 +1,64 @@
 # Read Later
 
-A self-hosted "read it later" app with automatic article collection.
+AIが支えるセルフホスト型の「あとで読む」記事管理ツールです。
 
-## Features
+## 機能
 
-- **Save articles** - Paste a URL or share from your phone
-- **Reader view** - Clean article reading powered by Mozilla Readability
-- **Tags** - Organize articles with color-coded tags
-- **Auto-collection** - Set keywords and RSS feeds to automatically find and save articles
-  - Google News keyword monitoring
-  - RSS/Atom feed support with keyword filtering
-  - RSS auto-discovery from site URLs
-  - Runs every 30 minutes
-- **Multi-user** - Each user has their own articles, tags, and settings
-- **Mobile-friendly** - PWA support, iOS Shortcut integration
-- **Self-hosted** - Docker Compose, no external services required
+- **記事の保存・管理** — URLを貼るだけでタイトル・本文を自動取得。タグ・お気に入り・既読管理
+- **リーダービュー** — 広告のないクリーンな本文表示（Mozilla Readability）
+- **キーワード自動収集** — 登録したキーワードでGoogle Newsを30分ごとに自動巡回・保存
+- **RSSフィード対応** — サイトURLからRSSを自動検出。キーワードにマッチした記事だけ保存
+- **AIダイジェスト** — 毎朝、キーワードに関する当日のニュースをClaudeが要約
+- **AIリサーチ** — 調べたいことを入力するとClaudeがニュースを検索・分析してレポート生成
+- **メモ** — 記事ごとにメモを残し、まとめて閲覧
+- **注目度スコア** — はてブ数・HNポイント・ドメイン信頼度による独自スコアでソート
+- **マルチユーザー** — ユーザーIDとパスワードで認証。メールアドレス不要
+- **スマートフォン対応** — iOSショートカットでSafariの共有ボタンからワンタップ保存
 
-## Tech Stack
+## 技術スタック
 
-- **Frontend**: Next.js 16 + TypeScript + Tailwind CSS v4
-- **Backend**: Next.js API Routes + Prisma 5
-- **Database**: PostgreSQL 16
-- **Auth**: JWT (jose) + bcrypt
-- **Content**: Mozilla Readability + JSDOM
-- **Infrastructure**: Docker Compose + Caddy
+| レイヤー | 技術 |
+|---------|------|
+| フロントエンド | Next.js 16 / React 19 / TypeScript / Tailwind CSS v4 |
+| バックエンド | Next.js API Routes / Prisma 5 / PostgreSQL 16 |
+| 本文抽出 | Mozilla Readability / JSDOM |
+| AI | Claude API（Haiku） |
+| 認証 | JWT（jose）/ bcrypt / APIトークン |
+| インフラ | Docker Compose |
 
-## Quick Start
+## セットアップ
+
+### 必要なもの
+
+- Docker & Docker Compose
+- （任意）Claude APIキー（AIダイジェスト・リサーチを使う場合）
+
+### 手順
 
 ```bash
 git clone https://github.com/Hibiki0419/readlater.git
 cd readlater
-cp .env.example .env  # Edit as needed
+cp .env.example .env
+```
+
+`.env` を編集：
+
+```env
+DATABASE_URL=postgresql://readlater:your-db-password@postgres:5432/readlater
+JWT_SECRET=ランダムな文字列を設定してください
+CRON_SECRET=別のランダムな文字列を設定してください
+ANTHROPIC_API_KEY=sk-ant-...（任意）
+```
+
+起動：
+
+```bash
 docker compose up -d
 ```
 
-Open `http://localhost:3000` and create your account.
+ブラウザで `http://localhost:3000` を開き、アカウントを作成してください。
 
-## Docker Compose (Recommended)
+### Docker Compose 構成例
 
 ```yaml
 services:
@@ -46,7 +68,7 @@ services:
     environment:
       POSTGRES_DB: readlater
       POSTGRES_USER: readlater
-      POSTGRES_PASSWORD: change-me
+      POSTGRES_PASSWORD: your-db-password
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -61,9 +83,10 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: postgresql://readlater:change-me@postgres:5432/readlater
-      JWT_SECRET: generate-a-random-string-here
-      CRON_SECRET: generate-another-random-string
+      DATABASE_URL: postgresql://readlater:your-db-password@postgres:5432/readlater
+      JWT_SECRET: ランダムな文字列
+      CRON_SECRET: 別のランダムな文字列
+      ANTHROPIC_API_KEY: sk-ant-...
     depends_on:
       postgres:
         condition: service_healthy
@@ -75,7 +98,9 @@ services:
     command:
       - -c
       - |
-        echo "*/30 * * * * wget -qO- --header='X-Cron-Secret: generate-another-random-string' --post-data= http://readlater:3000/read-later/api/feeds/check > /proc/1/fd/1 2>&1" | crontab -
+        echo "*/30 * * * * wget -qO- --header='X-Cron-Secret: 上のCRON_SECRETと同じ値' --post-data= http://readlater:3000/read-later/api/feeds/check > /proc/1/fd/1 2>&1" > /tmp/crontab
+        echo "0 22 * * * wget -qO- --header='X-Cron-Secret: 上のCRON_SECRETと同じ値' --post-data= http://readlater:3000/read-later/api/digest/generate > /proc/1/fd/1 2>&1" >> /tmp/crontab
+        crontab /tmp/crontab
         crond -f -l 2
     depends_on:
       - readlater
@@ -84,52 +109,42 @@ volumes:
   pgdata:
 ```
 
-## Environment Variables
+### データベースの初期化
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | Required |
-| `JWT_SECRET` | Secret for JWT token signing | `change-me-in-production` |
-| `CRON_SECRET` | Secret for cron feed checker | Required for auto-collection |
-
-## Database Setup
-
-On first run, Prisma will need to set up the database:
+初回起動後にスキーマを適用します：
 
 ```bash
 docker compose exec readlater npx prisma db push
 ```
 
-Or apply migrations:
+## 環境変数
 
-```bash
-docker compose exec readlater npx prisma migrate deploy
-```
+| 変数 | 説明 | 必須 |
+|------|------|------|
+| `DATABASE_URL` | PostgreSQL接続文字列 | はい |
+| `JWT_SECRET` | JWTトークンの署名に使うシークレット | はい |
+| `CRON_SECRET` | 自動巡回の認証シークレット | はい |
+| `ANTHROPIC_API_KEY` | Claude APIキー | いいえ（AI機能を使う場合のみ） |
 
-## iOS Shortcut Setup
+## iOSショートカットの設定
 
-To save articles from Safari's share sheet:
+Safariの共有ボタンからワンタップで記事を保存できます。
 
-1. Open the **Shortcuts** app
-2. Create a new shortcut
-3. Add action: **Get Contents of URL**
-4. Configure:
-   - **URL**: `https://your-domain/read-later/api/articles`
-   - **Method**: POST
-   - **Headers**:
-     - `Content-Type`: `application/json`
-     - `Authorization`: `Bearer YOUR_API_TOKEN`
-   - **Body** (JSON): key `url`, value: **Shortcut Input**
-5. Set the shortcut to accept **URLs** from the **Share Sheet**
-6. Name it "Read Later"
+1. ショートカットアプリで新規作成
+2. 「URLの内容を取得」アクションを追加
+3. 設定：
+   - **URL**: `https://あなたのドメイン/read-later/api/articles`
+   - **方法**: POST
+   - **ヘッダ**: `Content-Type` → `application/json`、`Authorization` → `Bearer あなたのAPIトークン`
+   - **本文（JSON）**: キー `url` → 値「ショートカットの入力」
+4. 共有シートに表示をON、入力タイプをURLのみに設定
 
-Your API token can be found in the app's Settings page.
+APIトークンはアプリの設定画面で確認できます。
 
-## Reverse Proxy
+## リバースプロキシ
 
-If using a reverse proxy (Caddy, Nginx, etc.), proxy `/read-later*` to `readlater:3000`.
+Caddy での設定例：
 
-Caddy example:
 ```
 your-domain.com {
     handle /read-later* {
@@ -138,7 +153,11 @@ your-domain.com {
 }
 ```
 
-## Development
+## ドキュメント
+
+詳しい使い方は [GUIDE.md](GUIDE.md) を参照してください。
+
+## 開発
 
 ```bash
 npm install
@@ -147,10 +166,6 @@ npx prisma db push
 npm run dev
 ```
 
-## Documentation
-
-Detailed usage guide: [GUIDE.md](GUIDE.md)
-
-## License
+## ライセンス
 
 MIT
