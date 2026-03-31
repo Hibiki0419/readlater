@@ -7,28 +7,23 @@ export const metadata: Metadata = {
   manifest: "/read-later/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: "Read Later",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0f172a",
+  themeColor: "#f0f0f0",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  viewportFit: "cover",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja">
-      <body className="bg-slate-900 text-slate-100 min-h-screen">
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

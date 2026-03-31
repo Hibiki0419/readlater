@@ -6,7 +6,7 @@ import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,7 +19,7 @@ export default function LoginPage() {
       const res = await fetch("/read-later/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ username, password }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -36,38 +36,34 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="flex items-center justify-center min-h-screen p-4">
+    <main className="flex items-center justify-center min-h-screen p-4" style={{background:"var(--bg-primary)"}}>
       <div className="w-full max-w-sm">
-        <h1 className="text-2xl font-bold text-center text-slate-100 mb-8">Read Later</h1>
+        <h1 className="text-2xl font-bold text-center mb-8" style={{color:"var(--text-primary)"}}>Read Later</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="メールアドレス"
-            className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500"
+            type="text" value={username} onChange={(e) => setUsername(e.target.value)}
+            placeholder="ユーザーID" autoComplete="username"
+            className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2"
+            style={{background:"var(--bg-elevated)", color:"var(--text-primary)", border:"1px solid var(--border)"}}
             required
           />
           <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="パスワード"
-            className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500"
+            type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+            placeholder="パスワード" autoComplete="current-password"
+            className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2"
+            style={{background:"var(--bg-elevated)", color:"var(--text-primary)", border:"1px solid var(--border)"}}
             required
           />
-          {error && <p className="text-red-400 text-sm">{error}</p>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-sky-600 text-white rounded-lg font-medium hover:bg-sky-500 disabled:opacity-50 transition-colors"
-          >
+          {error && <p className="text-sm" style={{color:"var(--accent-pink)"}}>{error}</p>}
+          <button type="submit" disabled={loading}
+            className="w-full py-3 rounded-xl font-medium text-white disabled:opacity-50 transition-colors"
+            style={{background:"var(--accent)"}}>
             {loading ? "..." : "ログイン"}
           </button>
         </form>
-        <p className="mt-4 text-center text-sm text-slate-500">
+        <p className="mt-4 text-center text-sm" style={{color:"var(--text-muted)"}}>
           アカウントがない場合は
-          <Link href="/register" className="text-sky-400 hover:text-sky-300 ml-1">新規登録</Link>
+          <Link href="/register" className="ml-1" style={{color:"var(--accent)"}}>新規登録</Link>
         </p>
       </div>
     </main>

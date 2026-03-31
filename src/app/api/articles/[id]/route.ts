@@ -29,6 +29,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (typeof body.isRead === "boolean") { data.isRead = body.isRead; data.readAt = body.isRead ? new Date() : null; }
   if (typeof body.isFavorite === "boolean") data.isFavorite = body.isFavorite;
   if (typeof body.title === "string") data.title = body.title;
+  if (typeof body.memo === "string") data.memo = body.memo;
   if (Array.isArray(body.tagIds)) { data.tags = { deleteMany: {}, create: body.tagIds.map((tagId: number) => ({ tagId })) }; }
   const article = await prisma.article.update({ where: { id: parseInt(id) }, data, include: { tags: { include: { tag: true } } } });
   return NextResponse.json(article);

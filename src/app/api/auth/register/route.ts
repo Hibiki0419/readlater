@@ -4,23 +4,26 @@ import { hashPassword, createToken } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   const prisma = getPrisma();
-  const { email, password, name } = await request.json();
+  const { username, password, name } = await request.json();
 
-  if (!email?.trim() || !password || !name?.trim()) {
+  if (!username?.trim() || !password || !name?.trim()) {
     return NextResponse.json({ error: "All fields are required" }, { status: 400 });
+  }
+  if (!/^[a-zA-Z0-9_]{3,20}$/.test(username.trim())) {
+    return NextResponse.json({ error: "ID is 3-20 chars, alphanumeric and underscore only" }, { status: 400 });
   }
   if (password.length < 6) {
     return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
   }
 
-  const exists = await prisma.user.findUnique({ where: { email: email.trim() } });
+  const exists = await prisma.user.findUnique({ where: { username: username.trim() } });
   if (exists) {
-    return NextResponse.json({ error: "Email already registered" }, { status: 409 });
+    return NextResponse.json({ error: "Username already taken" }, { status: 409 });
   }
 
   const hashed = await hashPassword(password);
   const user = await prisma.user.create({
-    data: { email: email.trim(), password: hashed, name: name.trim() },
+    data: { username: username.trim(), password: hashed, name: name.trim() },
   });
 
   // First user inherits orphaned data
@@ -33,7 +36,7 @@ export async function POST(request: NextRequest) {
   }
 
   const token = await createToken(user.id);
-  const res = NextResponse.json({ id: user.id, email: user.email, name: user.name });
+  const res = NextResponse.json({ id: user.id, username: user.username, name: user.name });
   res.cookies.set("token", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

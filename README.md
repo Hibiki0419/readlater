@@ -147,6 +147,10 @@ npx prisma db push
 npm run dev
 ```
 
+## Documentation
+
+Detailed usage guide: [GUIDE.md](GUIDE.md)
+
 ## License
 
 MIT

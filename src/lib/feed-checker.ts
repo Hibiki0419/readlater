@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { JSDOM } from "jsdom";
 import { fetchArticleData } from "./fetch-title";
 
+import { fetchPopularity } from "./popularity";
 type RssItem = { title: string; link: string };
 
 async function resolveRedirect(url: string): Promise<string> {
@@ -64,10 +65,10 @@ async function addArticle(prisma: PrismaClient, item: RssItem, tagId: number, us
   }
   const exists = await prisma.article.findFirst({ where: { url: articleUrl, userId } });
   if (exists) return false;
-  const { title: fetchedTitle, domain, content, excerpt } = await fetchArticleData(articleUrl);
+  const [{ title: fetchedTitle, domain, content, excerpt }, popularity] = await Promise.all([fetchArticleData(articleUrl), fetchPopularity(articleUrl)]);
   const title = item.title || fetchedTitle || null;
   const article = await prisma.article.create({
-    data: { url: articleUrl, title, domain, content, excerpt, userId, tags: { create: [{ tagId }] } },
+    data: { url: articleUrl, title, domain, content, excerpt, popularity, userId, tags: { create: [{ tagId }] } },
   });
   console.log(`[feed-checker] Added: ${article.title} (id=${article.id}, user=${userId})`);
   return true;

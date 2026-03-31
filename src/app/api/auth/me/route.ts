@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   const prisma = getPrisma();
   const user = await prisma.user.findUnique({
     where: { id: auth.userId },
-    select: { id: true, email: true, name: true, apiToken: true },
+    select: { id: true, username: true, name: true, apiToken: true },
   });
   return NextResponse.json(user);
 }

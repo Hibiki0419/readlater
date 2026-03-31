@@ -8,16 +8,18 @@ datasource db {
 }
 
 model User {
-  id        Int       @id @default(autoincrement())
-  email     String    @unique
-  password  String
-  name      String
-  apiToken  String    @unique @default(uuid()) @map("api_token")
-  createdAt DateTime  @default(now()) @map("created_at")
-  articles  Article[]
-  tags      Tag[]
-  keywords  Keyword[]
-  feeds     Feed[]
+  id         Int        @id @default(autoincrement())
+  username   String     @unique
+  password   String
+  name       String
+  apiToken   String     @unique @default(uuid()) @map("api_token")
+  createdAt  DateTime   @default(now()) @map("created_at")
+  articles   Article[]
+  tags       Tag[]
+  keywords   Keyword[]
+  feeds      Feed[]
+  digests    Digest[]
+  researches Research[]
 
   @@map("users")
 }
@@ -29,6 +31,8 @@ model Article {
   domain     String?
   content    String?
   excerpt    String?
+  memo       String?
+  popularity Int          @default(0)
   isRead     Boolean      @default(false) @map("is_read")
   isFavorite Boolean      @default(false) @map("is_favorite")
   createdAt  DateTime     @default(now()) @map("created_at")
@@ -89,4 +93,27 @@ model Feed {
 
   @@unique([url, userId])
   @@map("feeds")
+}
+
+model Digest {
+  id      Int      @id @default(autoincrement())
+  content String
+  date    DateTime @default(now())
+  userId  Int      @map("user_id")
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("digests")
+  @@index([userId, date])
+}
+
+model Research {
+  id        Int      @id @default(autoincrement())
+  query     String
+  content   String
+  userId    Int      @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("researches")
+  @@index([userId])
 }
